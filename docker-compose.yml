@@ -1,0 +1,42 @@
+version: "3"
+
+services:
+  # Use to spin up api container
+  # Use: docker-compose up api
+  api:
+    build:
+      context: ./api
+      dockerfile: ../dockerfiles/api.dockerfile
+    ports:
+      - '8000:8000'
+    env_file:
+      - ./env/api.env
+    volumes:
+      - ./api:/app
+    command: >
+      sh -c "python manage.py wait_for_db &&
+            python manage.py migrate &&
+            python manage.py runserver 0.0.0.0:8000"
+  ### Utility containers ###
+
+  # Use for running django commands in API code volume
+  # Use: docker-compose run --rm django "command"
+  django:
+    build:
+      context: ./api
+      dockerfile: ../dockerfiles/api.dockerfile
+    env_file:
+      - ./env/api.env
+    volumes:
+      - ./api:/app
+    entrypoint: [ "python", "manage.py" ]
+
+  # Use for running django unit tests with sqlite db
+  # Use: docker-compose run --rm django-test
+  django-test:
+    build:
+      context: ./api
+      dockerfile: ../dockerfiles/api.dockerfile
+    volumes:
+      - ./api:/app
+    entrypoint: [ "python", "manage.py", "test", "--settings", "api.test_settings" ]
